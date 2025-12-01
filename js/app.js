@@ -66,24 +66,31 @@ function loadGlassesModel() {
       "./assets/sunglasses.glb",
       (gltf) => {
         const model = gltf.scene;
-        model.traverse((child) => {
-          if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-          }
-        });
-        model.scale.set(0.01, 0.01, 0.01);
-        model.position.set(0, 0, 0);
-        resolve(model);
+
+        // Create wrapper
+        const group = new THREE.Group();
+        group.add(model);
+
+        // Center geometry
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        model.position.sub(center);
+
+        model.rotation.x = Math.PI / 2;
+        model.rotation.y = Math.PI;
+        model.rotation.z = Math.PI;
+
+        // Scale wrapper
+        group.scale.set(0.015, 0.015, 0.015);
+
+        resolve(group);
       },
       undefined,
-      (error) => {
-        console.error("Failed to load 3D model:", error);
-        reject(error);
-      }
+      reject
     );
   });
 }
+
 
 // Init 3D Scene
 function initThree() {
@@ -168,52 +175,54 @@ function draw2D(landmarks) {
 function update3D(landmarks) {
   if (!glassesGroup) return;
 
-  const left = landmarks[33];
-  const right = landmarks[263];
+  // --- LANDMARKS ---
+  const L = landmarks[33];     // left outer eye
+  const R = landmarks[263];    // right outer eye
+  const nose = landmarks[1];   // nose tip
+  const forehead = landmarks[168]; // forehead center
 
-  const lx = 1 - left.x;
-  const ly = left.y;
-  const rx = 1 - right.x;
-  const ry = right.y;
+  // Convert normalized [0..1] to centered Three.js coords
+  const toWorld = (lm) => {
+    return new THREE.Vector3(
+      -(1 - lm.x - 0.5) * 2,   // invert x, place center at 0
+      (lm.y - 0.5) * 2,      // invert y
+      lm.z * 2                // depth scale
+    );
+  };
 
-  const cx = (lx + rx) / 2;
-  const cy = (ly + ry) / 2;
+  const Lw = toWorld(L);
+  const Rw = toWorld(R);
+  const NoseW = toWorld(nose);
+  const ForeW = toWorld(forehead);
+  console.log(NoseW, 'NoseW');
+  // --- POSITION (midpoint of eyes) ---
+  const mid = Lw.clone().add(Rw).multiplyScalar(0.5);
+  glassesGroup.position.copy(mid);
 
-  const dx = rx - lx;
-  const dy = ry - ly;
-
-  const dist = Math.hypot(dx, dy);
-  const angle = Math.atan2(dy, dx);
-
-  const xWorld = (cx - 0.5) * 2;
-  const yWorld = -(cy - 0.5) * 2;
-  const zWorld = 0;
-
-  glassesGroup.position.set(xWorld, yWorld, zWorld);
-  glassesGroup.rotation.set(Math.PI, Math.PI, -angle);
-
-  const scale = dist * 0.03;
+  // --- SCALE (eye distance) ---
+  const eyeDist = Lw.distanceTo(Rw);
+  const scale = eyeDist * 0.015; // tweak factor
   glassesGroup.scale.set(scale, scale, scale);
+
+  // --- ROTATION ---
+  // YAW vector (right direction)
+  const rightDir = Rw.clone().sub(Lw).normalize();
+  // PITCH vector (forward/back direction)
+  const forwardDir = ForeW.clone().sub(NoseW).normalize();
+
+  // ROLL vector (up direction)
+  const upDir = new THREE.Vector3()
+    .crossVectors(forwardDir, rightDir)
+    .normalize();
   
-  if (currentMode === "3d") {
-    ctx2d.strokeStyle = "lime";
-    ctx2d.lineWidth = 3;
-    ctx2d.strokeRect(lx * canvas2d.width - scale * 50, ly * canvas2d.height - scale * 30, scale * 100, scale * 60);
-    
-    ctx2d.fillStyle = "lime";
-    const leftPixelX = (1 - left.x) * canvas2d.width;
-    const leftPixelY = left.y * canvas2d.height;
-    const rightPixelX = (1 - right.x) * canvas2d.width;
-    const rightPixelY = right.y * canvas2d.height;
-    
-    ctx2d.beginPath();
-    ctx2d.arc(leftPixelX, leftPixelY, 6, 0, Math.PI * 2);
-    ctx2d.fill();
-    
-    ctx2d.beginPath();
-    ctx2d.arc(rightPixelX, rightPixelY, 6, 0, Math.PI * 2);
-    ctx2d.fill();
-  }
+  // Re-orthogonalize
+  forwardDir.crossVectors(rightDir, upDir).normalize();
+
+  // --- APPLY ROTATION ---
+  const rotMatrix = new THREE.Matrix4();
+  rotMatrix.makeBasis(rightDir, upDir, forwardDir);
+
+  glassesGroup.setRotationFromMatrix(rotMatrix);
 }
 
 // FaceLandmarker Loop
