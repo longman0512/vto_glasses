@@ -175,54 +175,56 @@ function draw2D(landmarks) {
 function update3D(landmarks) {
   if (!glassesGroup) return;
 
-  // --- LANDMARKS ---
-  const L = landmarks[33];     // left outer eye
-  const R = landmarks[263];    // right outer eye
-  const nose = landmarks[1];   // nose tip
-  const forehead = landmarks[168]; // forehead center
+  const L = landmarks[33];
+  const R = landmarks[263];
+  const nose = landmarks[1];
+  const forehead = landmarks[168];
 
-  // Convert normalized [0..1] to centered Three.js coords
-  const toWorld = (lm) => {
-    return new THREE.Vector3(
-      -(1 - lm.x - 0.5) * 2,   // invert x, place center at 0
-      (lm.y - 0.5) * 2,      // invert y
-      lm.z * 2                // depth scale
+  // Convert normalized LM → 3D world
+  const toWorld = (lm) =>
+    new THREE.Vector3(
+      -(1 - lm.x - 0.5) * 2,
+      (lm.y - 0.5) * 2,
+      lm.z * 2
     );
-  };
 
   const Lw = toWorld(L);
   const Rw = toWorld(R);
   const NoseW = toWorld(nose);
   const ForeW = toWorld(forehead);
-  console.log(NoseW, 'NoseW');
-  // --- POSITION (midpoint of eyes) ---
-  const mid = Lw.clone().add(Rw).multiplyScalar(0.5);
-  glassesGroup.position.copy(mid);
 
-  // --- SCALE (eye distance) ---
-  const eyeDist = Lw.distanceTo(Rw);
-  const scale = eyeDist * 0.015; // tweak factor
+  // --- POSITION ---
+  const mid = Lw.clone().add(Rw).multiplyScalar(0.5);
+
+  // Depth estimate from eye distance
+  const faceSize = Lw.distanceTo(Rw);
+  const depthOffset = faceSize * 0.2;
+
+  const forward = ForeW.clone().sub(NoseW).normalize();
+  const finalPos = mid.clone().add(forward.clone().multiplyScalar(depthOffset));
+
+  const offsetRight = 0.3;  // try positive/negative to see which way is "right"
+  const offsetUp    = 0.4;  // try positive/negative to see which way is "up"
+
+  // X = left/right, Y = up/down in your world mapping
+  finalPos.x += offsetRight;
+  finalPos.y += offsetUp;
+
+  glassesGroup.position.copy(finalPos);
+
+  // --- SCALE ---
+  const scale = faceSize * 0.015;
   glassesGroup.scale.set(scale, scale, scale);
 
   // --- ROTATION ---
-  // YAW vector (right direction)
-  const rightDir = Rw.clone().sub(Lw).normalize();
-  // PITCH vector (forward/back direction)
-  const forwardDir = ForeW.clone().sub(NoseW).normalize();
+  const right = Rw.clone().sub(Lw).normalize();
+  const up = new THREE.Vector3().crossVectors(forward, right).normalize();
+  forward.crossVectors(right, up).normalize();
 
-  // ROLL vector (up direction)
-  const upDir = new THREE.Vector3()
-    .crossVectors(forwardDir, rightDir)
-    .normalize();
-  
-  // Re-orthogonalize
-  forwardDir.crossVectors(rightDir, upDir).normalize();
+  const rot = new THREE.Matrix4();
+  rot.makeBasis(right, up, forward);
 
-  // --- APPLY ROTATION ---
-  const rotMatrix = new THREE.Matrix4();
-  rotMatrix.makeBasis(rightDir, upDir, forwardDir);
-
-  glassesGroup.setRotationFromMatrix(rotMatrix);
+  glassesGroup.setRotationFromMatrix(rot);
 }
 
 // FaceLandmarker Loop
