@@ -1,0 +1,112 @@
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 16px;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, #111827, #020617);
+  color: #f9fafb;
+}
+
+.app {
+  width: 100%;
+  max-width: 960px;
+  border-radius: 24px;
+  padding: 24px;
+  background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(3,7,18,0.98));
+  box-shadow: 0 24px 80px rgba(0,0,0,0.75);
+}
+
+h1 {
+  text-align: center;
+  margin: 0 0 4px;
+  font-size: 1.8rem;
+}
+
+.subtitle {
+  text-align: center;
+  margin: 0 0 16px;
+  color: #9ca3af;
+  font-size: 0.95rem;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.toolbar button {
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  background: transparent;
+  color: #e5e7eb;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.18s ease;
+}
+
+.toolbar button.active {
+  background: linear-gradient(135deg, #06b6d4, #6366f1);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 12px 32px rgba(56,189,248,0.5);
+}
+
+.viewport {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  aspect-ratio: 4 / 3;
+  border-radius: 18px;
+  overflow: hidden;
+  background: black;
+}
+
+video,
+canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+video {
+  transform: scaleX(-1); /* mirror selfie view */
+}
+
+#canvas-2d,
+#canvas-3d {
+  pointer-events: none;
+}
+
+#canvas-2d.hidden,
+#canvas-3d.hidden {
+  display: none;
+}
+
+.note {
+  margin-top: 10px;
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
+
+code {
+  background: rgba(15,23,42,0.85);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}

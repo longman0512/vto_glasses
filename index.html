@@ -1,0 +1,35 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>VTO Glasses with MediaPipe FaceLandmarker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="./css/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <h1>Virtual Try-On for Glasses</h1>
+    <p class="subtitle">MediaPipe FaceLandmarker Tasks + 2D & 3D glasses</p>
+
+    <div class="toolbar">
+      <button id="btn-2d" class="active">2D Overlay</button>
+      <button id="btn-3d">3D Glasses</button>
+    </div>
+
+    <div class="viewport">
+      <video id="video" autoplay playsinline></video>
+      <canvas id="canvas-2d"></canvas>
+      <canvas id="canvas-3d"></canvas>
+    </div>
+
+    <p class="note">
+      Make sure you're serving this over <code>http://localhost</code> (not <code>file://</code>), 
+      and allow camera access.
+    </p>
+  </div>
+
+  <!-- Single ES module entry -->
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
